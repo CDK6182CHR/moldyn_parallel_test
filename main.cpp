@@ -1,10 +1,20 @@
 #include <iostream>
 #include "SystemOfParticles.hpp"
+#include "etime.h"
+
 
 int main() {
     
-    std::cout << "Creating obj\n";
-    SystemOfParticles gas(100);
-    std::cout << "Done!\n";    
+    SystemOfParticles gas(27, 180.0);
+    gas.set_initial_state(5.0);
+
+    etime timer;
+    
+    timer.start();
+    
+    	gas.execute_interations(1000000);
+    	
+    timer.end("Simulation lasted ");
+    
     return 0;
 }
