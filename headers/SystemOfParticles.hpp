@@ -1,7 +1,7 @@
 #ifndef SYSTEMOFPARTICLES_H
 #define SYSTEMOFPARTICLES_H
-
 class Force;
+class etime;
 
 class SystemOfParticles
 {
@@ -9,7 +9,7 @@ class SystemOfParticles
     private:
     	int number_of_particles;
         double *r, *v, *F, *m;  // position, velocity, force, mass
-        double T;
+        double T;               // Temperature
         double dt;				// Time step
         Force *f;
         std::string *particle_name;
@@ -46,7 +46,7 @@ class SystemOfParticles
         
         void set_initial_state(double L = 1.0, double mass = 1.0, double mean = 0.0, double dispertion = 1.0);
         
-        void execute_interations(int);
+        void execute_interations(int, etime *timer = nullptr);
         
         void load_masses(std::string);
         

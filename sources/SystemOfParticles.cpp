@@ -4,9 +4,12 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include "etime.hpp"
 #include "Force.hpp"
 #include "SystemOfParticles.hpp"
 #include "fileHandler.hpp"
+
+
 
 SystemOfParticles::SystemOfParticles () : 
 	r(nullptr),
@@ -29,7 +32,7 @@ SystemOfParticles::SystemOfParticles (int N, double temperature, double time_ste
 	m = new double[N];	//Mass
 	particle_name = new std::string [N];
 	f = new Force();		//Force of interaction
-	T = temperature;
+	T = temperature/f->unit_of_temperature();
 	dt = time_step;
 }
 
@@ -46,20 +49,28 @@ void SystemOfParticles::set_initial_state(double L, double mass, double mean, do
 	for (unsigned int i = 0; i < 3*number_of_particles; i += 1) {
 	    F[i] = 0.0;
 	}
-	std::cout << f->unit_of_energy() << std::endl;
-	std::cout << f->unit_of_space() << std::endl;
-	std::cout << f->unit_of_temperature() << std::endl;
-	std::cout << f->unit_of_time() << std::endl;
+	
+	
+	std::cout << "\n\tSystem of units used:\n";
+	std::cout << "\tUnit of energy: " << f->unit_of_energy() << std::endl;
+	std::cout << "\tUnit of space: " << f->unit_of_space() << std::endl;
+	std::cout << "\tUnit of temperature: " << f->unit_of_temperature() << std::endl;
+	std::cout << "\tUnit of time: " << f->unit_of_time() << std::endl;
 	
 }
 
-void SystemOfParticles::execute_interations(int number_of_interations) {
+void SystemOfParticles::execute_interations(int number_of_interations, etime *timer) {
 	
 	int factor_percent = number_of_interations/100;
 	int factor_ecran = factor_percent;
 	int factor_store_state = 100;
 	int factor_xy = 1;
 	
+	if (timer == nullptr) {
+	    timer = new etime();
+	}
+	
+	timer->start();
 	for (unsigned int it = 0; it < number_of_interations; it += 1) {
 		
 		show_infos(it, factor_ecran, factor_percent);
@@ -83,7 +94,10 @@ void SystemOfParticles::execute_interations(int number_of_interations) {
 		
 		store_files(it, factor_store_state, factor_xy);
 		
+		if (!(it%factor_ecran)) timer->register_time("simulation time: ");
+		
 	}
+	timer->end("simulation time: ");
 
 }
 
@@ -110,6 +124,7 @@ void SystemOfParticles::compute_interations() {
 }
 
 void SystemOfParticles::move_particles() {
+
     for (unsigned int i = 0; i < 3*number_of_particles; i += 3) {
     	for (unsigned int j = 0; j < 3; j += 1) {
     	
@@ -132,7 +147,6 @@ void SystemOfParticles::compute_velocities() {
 
 double SystemOfParticles::knetic_energy() {
     double v2 = 0.0;
-    double K = 0.0;
     
     for (unsigned int i = 0; i < 3*number_of_particles; i += 3) {
         for (unsigned int j = 0; j < 3; j += 1) {
@@ -140,7 +154,7 @@ double SystemOfParticles::knetic_energy() {
         }
     }
     
-    K = 0.5*v2;
+    return 0.5*v2;
     
 }
 
@@ -201,7 +215,6 @@ void SystemOfParticles::set_velocities(double mean, double dispertion) {
     for (unsigned int i = 0; i < number_of_particles; i += 1) {
         M += m[i];
     }
-    std::cout << M << std::endl;
     
     for (unsigned int j = 0; j < 3; j += 1) {
         Vcm[j] /= number_of_particles*M;
@@ -210,11 +223,12 @@ void SystemOfParticles::set_velocities(double mean, double dispertion) {
     for (unsigned int i = 0; i < 3*number_of_particles; i += 3) {
         for (unsigned int j = 0; j < 3; j += 1) {
             v[i + j] -= Vcm[j];
-            v2 += m[i]*v[i + j]*v[i + j];
+            v2 += m[i/3]*v[i + j]*v[i + j];
         }
     }
     
-    double temperature_factor = sqrt(3*(number_of_particles - 1.0)*T/v2);
+    double To = 0.5*v2/(3*(number_of_particles - 1));
+    double temperature_factor = sqrt(T/To);
     
     for (unsigned int i = 0; i < 3*number_of_particles; i += 3) {
         for (unsigned int j = 0; j < 3; j += 1) {
@@ -288,7 +302,7 @@ void SystemOfParticles::load_state(std::string file_name) {
 	f = new Force();		//Force of interaction
 		
 	for (unsigned int i = 0; i < 3*number_of_particles; i += 3) {
-		file >> particle_name[i/3] >> m[i] >> r[i] >> r[i + 1] >> r[i + 2] >> v[i] >> v[i + 1] >> v[i + 2];
+		file >> particle_name[i/3] >> m[i/3] >> r[i] >> r[i + 1] >> r[i + 2] >> v[i] >> v[i + 1] >> v[i + 2];
 	}
 	
 	file.close();
@@ -351,12 +365,13 @@ void SystemOfParticles::store_files(int iterator, int factor_xyz, int factor_xy,
 		store_xyz_file(true);
 	}
 	if (!(iterator%factor_xy)) {
-		double K = knetic_energy();
-		double P = potential_energy();
+		double K = knetic_energy()*f->unit_of_energy();
+		double P = potential_energy()*f->unit_of_energy();
 		double E = K + P;
-		storeXYData(dt*iterator, K, k_energy_file);
-		storeXYData(dt*iterator, P, p_energy_file);
-		storeXYData(dt*iterator, E, e_energy_file);
+		double time = dt*iterator;
+		storeXYData(time, K, k_energy_file);
+		storeXYData(time, P, p_energy_file);
+		storeXYData(time, E, e_energy_file);
 	}
 }
 void SystemOfParticles::show_infos(int iterator, int factor_ecran, int factor_percent) {
@@ -366,8 +381,8 @@ void SystemOfParticles::show_infos(int iterator, int factor_ecran, int factor_pe
 	std::cout << std::setprecision(1);
 	
     if (!iterator) {
-        std::cout << "\n========================================\n";
-        std::cout << "\t|Simulation state \t| knetic energy \t| potential energy \t| Total energy \t| Temperature \t\n\n \t\n\n";
+        std::cout << "\n\t========================================\n";
+        std::cout << "\t|Simulation state \t| knetic energy \t| potential energy \t| Total energy \t| Temperature (K) \t\n\n \t\n\n";
         std::cout.flush();
     }
     if (!(iterator%factor_ecran)) {
@@ -377,10 +392,10 @@ void SystemOfParticles::show_infos(int iterator, int factor_ecran, int factor_pe
             E = K + P;
             std::cout << std::fixed << "\t|" << double(iterator/factor_percent) << "% \t        ";
             std::cout << std::scientific;
-            std::cout << "\t|" << K << "        " ;
-           	std::cout << "\t|" << P << "        " ;
-            std::cout << "\t|" << E << "     ";
-            std::cout << "\t|" << 2.0*K/(3*number_of_particles) << "        ";
+            std::cout << "\t|" << K*f->unit_of_energy() << "        " ;
+           	std::cout << "\t|" << P*f->unit_of_energy() << "        " ;
+            std::cout << "\t|" << E*f->unit_of_energy() << "     ";
+            std::cout << "\t|" << K/(3.0*(number_of_particles - 1.0))*f->unit_of_temperature() << "        ";
             std::cout << std::endl;
             std::cout.flush();
 //            }

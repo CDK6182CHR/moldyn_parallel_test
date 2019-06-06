@@ -11,20 +11,16 @@ double* Force::operator () (double *r, double *ro, double sigmaA, double sigmaB,
     Rx = r[0] - ro[0];
     Ry = r[1] - ro[1];
     Rz = r[2] - ro[2];
+    
     double Rm2 = 1/(pow(Rx,2.0) + pow(Ry,2.0) + pow(Rz,2.0));
     double Rm6 = pow(Rm2,3);
+    
     double epsilonsigma6A = epsilonA*pow(sigmaA,6.0);
     double epsilonsigma6B = epsilonB*pow(sigmaB,6.0);
     double epsilonsigma6 = sqrt(epsilonsigma6A*epsilonsigma6A);
     double epsilonsigma12 = pow(0.5*(pow(epsilonsigma6A*pow(sigmaA,6),1.0/13.0) + pow(epsilonsigma6B*pow(sigmaB,6),1.0/13.0)),13);
     
-    p_unit_space =  (epsilonsigma12/epsilonsigma6)*(epsilonsigma12/epsilonsigma6);
-    
-    p_unit_energy = (epsilonsigma6*epsilonsigma6/epsilonsigma12);
-    p_unit_time = sqrt(atomic_mass/p_unit_energy)*p_unit_space;
-    p_unit_temperature = pow(p_unit_space/p_unit_time,2)*atomic_mass;
-    
-    double C = 24.0*pow(Rm2,4)*(2.0*Rm6 - 1.0);
+    double C = 24.0*pow(Rm2,4)*(2.0*epsilonsigma12*Rm6 - epsilonsigma6);
     
     p_F[0] = C*Rx;///unitForce;
     p_F[1] = C*Ry;///unitForce;
@@ -38,10 +34,15 @@ double Force::potential(double *r, double *ro, double sigmaA, double sigmaB, dou
     Rx = r[0] - ro[0];
     Ry = r[1] - ro[1];
     Rz = r[2] - ro[2];
+    
     double Rm2 = 1/(pow(Rx,2.0) + pow(Ry,2.0) + pow(Rz,2.0));
     double Rm6 = pow(Rm2,3);
-    
-    return 4.0*Rm6*(Rm6 - 1.0);
+    double epsilonsigma6A = epsilonA*pow(sigmaA,6.0);
+    double epsilonsigma6B = epsilonB*pow(sigmaB,6.0);
+    double epsilonsigma6 = sqrt(epsilonsigma6A*epsilonsigma6A);
+    double epsilonsigma12 = pow(0.5*(pow(epsilonsigma6A*pow(sigmaA,6),1.0/13.0) + pow(epsilonsigma6B*pow(sigmaB,6),1.0/13.0)),13);
+        
+    return 4.0*Rm6*(epsilonsigma12*Rm6 - epsilonsigma6);
     
 }
 
@@ -57,5 +58,3 @@ double Force::unit_of_energy() {
 double Force::unit_of_temperature() {
 	return p_unit_temperature;
 }
-
-

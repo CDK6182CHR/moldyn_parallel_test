@@ -6,11 +6,14 @@ SOURCES	=	sources/
 
 SRC1	=	SystemOfParticles.cpp
 SRC2	=	Force.cpp
+SRC3    =   etime.cpp
 MAIN  = main.cpp
 
-SRCS	=	$(SRC2) $(SRC1) $(MAIN)
+SRCS	=	$(SRC3) $(SRC2) $(SRC1) $(MAIN)
 
 INC1	=	$(SRC1:.cpp=.hpp)
+INC2	=	$(SRC2:.cpp=.hpp)
+INC3    =   $(SRC3:.cpp=.hpp)
 
 OBJS	=	$(addprefix $(LIB),$(SRCS:.cpp=.o))
 
@@ -22,9 +25,11 @@ EXEC = rmoldyn
 
 build: $(EXEC)
 
-$(LIB)$(SRC1:.cpp=.o): $(SOURCES)$(SRC1)
+$(LIB)$(SRC1:.cpp=.o): $(SOURCES)$(SRC1) $(INCLUDE)$(INC1) $(INCLUDE)$(INC3)
 	$(CXX) $(CPPFLAGS)	-c $< -o $@
-$(LIB)$(SRC2:.cpp=.o): $(SOURCES)$(SRC2)
+$(LIB)$(SRC2:.cpp=.o): $(SOURCES)$(SRC2) $(INCLUDE)$(INC2)
+	$(CXX) $(CPPFLAGS)	-c $< -o $@
+$(LIB)$(SRC3:.cpp=.o): $(SOURCES)$(SRC3) $(INCLUDE)$(INC3)
 	$(CXX) $(CPPFLAGS)	-c $< -o $@
 $(LIB)$(MAIN:.cpp=.o): $(MAIN)
 	$(CXX) $(CPPFLAGS)	-c $< -o $@
