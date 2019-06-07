@@ -4,7 +4,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
-#include "etime.hpp"
+#include "Timer.hpp"
 #include "Force.hpp"
 #include "SystemOfParticles.hpp"
 #include "fileHandler.hpp"
@@ -59,7 +59,7 @@ void SystemOfParticles::set_initial_state(double L, double mass, double mean, do
 	
 }
 
-void SystemOfParticles::execute_interations(int number_of_interations, etime *timer) {
+void SystemOfParticles::execute_interations(int number_of_interations, Timer *timer) {
 	
 	int factor_percent = number_of_interations/100;
 	int factor_ecran = factor_percent;
@@ -67,10 +67,10 @@ void SystemOfParticles::execute_interations(int number_of_interations, etime *ti
 	int factor_xy = 1;
 	
 	if (timer == nullptr) {
-	    timer = new etime();
+	    timer = new Timer();
 	}
 	
-	timer->start();
+	timer->start_timer();
 	for (unsigned int it = 0; it < number_of_interations; it += 1) {
 		
 		show_infos(it, factor_ecran, factor_percent);
@@ -97,7 +97,7 @@ void SystemOfParticles::execute_interations(int number_of_interations, etime *ti
 		if (!(it%factor_ecran)) timer->register_time("simulation time: ");
 		
 	}
-	timer->end("simulation time: ");
+	timer->end_timer("simulation time: ");
 
 }
 

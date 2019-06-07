@@ -1,5 +1,5 @@
 #include <iostream>
-#include "etime.hpp"
+#include "Timer.hpp"
 #include "SystemOfParticles.hpp"
 
 
@@ -18,13 +18,13 @@ int main() {
     SystemOfParticles gas(64, 80.0);
     gas.set_initial_state(3.9);
 
-    etime timer;
+    Timer timer;
     
-    timer.start();
+    timer.start_timer();
     
     	gas.execute_interations(1000000);
     	
-    timer.end("Simulation lasted ");
+    timer.end_timer("Simulation lasted ");
     
     return 0;
 }

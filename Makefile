@@ -6,7 +6,7 @@ SOURCES	=	sources/
 
 SRC1	=	SystemOfParticles.cpp
 SRC2	=	Force.cpp
-SRC3    =   etime.cpp
+SRC3    =   Timer.cpp
 MAIN  = main.cpp
 
 SRCS	=	$(SRC3) $(SRC2) $(SRC1) $(MAIN)

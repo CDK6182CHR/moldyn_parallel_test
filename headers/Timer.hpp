@@ -1,5 +1,5 @@
-#ifndef ETIME_H
-#define ETIME_H
+#ifndef Timer_H
+#define Timer_H
 
 #include <ctime>
 #include <string>
@@ -9,23 +9,21 @@
 #include <iostream>
 #include <cmath>
 
-
-
 /*
 ***** BEGIN LICENSE BLOCK *****
 *	
 *	The content of this code is released under
 *	the (http://goo.gl/zNe9hw) MIT License.
 *
-*	Developer: Vagner Bessa (vagner.fisica@gmail.com)
+*	Developer: Vagner Bessa (bessavagner@gmail.com)
 *	
 ***** END LICENSE BLOCK *******
 */
 
 /*
 *******************************
-*	etime C++ class's
-*	- Purpose: The main purpose of this library is
+*	Timer C++ class's
+*	- Purpose: The main purpose of this class is
 *			   to compute the elapsed time between 
 *			   computations
 *
@@ -35,37 +33,31 @@
 *******************************
 */
 
-#define HOUR 3600
-#define MINUTE 60
+class Timer{
 
-using std::stringstream;
-using std::string;
-using std::setw;
-using std::setfill;
-using std::cout;
-
-class etime{
-	
-	public:
-		
-//		default constructor
-		etime();
-
-		void start();
-
-		void end(string);
-        void register_time(string);
-		double end();
-		
 	private:
-
-		clock_t clock_;
-		double etime_;
+        constexpr static int m_hour = 3600;
+        constexpr static int m_minute = 60;
+        
+		clock_t m_clock;
+		double m_timer;
 		
 		void start_clock();
 		void end_clock();
 
-		string get_formated_time(double);		
+		std::string get_formated_time(double);
 
+	public:
+		
+//		Default and only constructor.
+		Timer();
+
+		void start_timer();
+		
+		void end_timer(std::string);
+		double end_timer();
+		
+        void register_time(std::string);
+				
 };
 #endif
