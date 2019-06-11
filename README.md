@@ -14,7 +14,7 @@ Developer: Vagner H. L. Bessa (bessavagner@gmail.com)
 
 ## BASIC USER'S GUIED
 
-- The main purpose of this library is to simulate a system of interacting particles via [Lennard-Jones potential](https://en.wikipedia.org/wiki/Lennard-Jones_potential). The system is enclosed in a elastic wall recipient (reflations on the wall are perfectly elastic), therefore the mechanical energy is constant ([microcanonical ensemble](https://en.wikipedia.org/wiki/Microcanonical_ensemble)).
+- The main purpose of this library is to simulate a system of interacting particles via [Lennard-Jones potential](https://en.wikipedia.org/wiki/Lennard-Jones_potential). The system is enclosed in a elastic wall recipient (refletions on the wall are perfectly elastic), therefore the mechanical energy is constant ([microcanonical ensemble](https://en.wikipedia.org/wiki/Microcanonical_ensemble)), while the temperature varies and oscilates between an average value.
 
 ## DEVELOPER'S INFORMATION:
 
