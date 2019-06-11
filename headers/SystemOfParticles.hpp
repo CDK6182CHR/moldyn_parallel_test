@@ -10,6 +10,8 @@ class SystemOfParticles
     	int number_of_particles;
         double *r, *v, *F, *m;  // position, velocity, force, mass
         double T;               // Temperature
+        double density;
+        double volume;
         double dt;				// Time step
         Force *f;
         std::string *particle_name;
@@ -42,9 +44,9 @@ class SystemOfParticles
 							std::string delimiter = "\t");    
     public:
     	SystemOfParticles ();
-        SystemOfParticles (int, double temperature = 300.0, double time_step = 1.0e-4);
+        SystemOfParticles (int, double temperature = 300.0, double dens = 40.0, double time_step = 1.0e-4); 
         
-        void set_initial_state(double L = 1.0, double mass = 1.0, double mean = 0.0, double dispertion = 1.0);
+        void set_initial_state(double mass = 1.0, double mean = 0.0, double dispertion = 1.0);
         
         void execute_interations(int, Timer *timer = nullptr);
         

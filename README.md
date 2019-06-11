@@ -14,7 +14,12 @@ Developer: Vagner H. L. Bessa (bessavagner@gmail.com)
 
 ## BASIC USER'S GUIED
 
-- The main purpose of this library is to ...
+- The main purpose of this program is to simulate a simple system of interacting particles encolsed in an adiabatic box of elastic walls.
+
+- The inputs are:
+    1. Number of particles (works better with powers of 3).
+    2. The lateral size of the system in Bohr Radius unit.
+    3. The initial temperature in K.
 
 ## DEVELOPER'S INFORMATION:
 

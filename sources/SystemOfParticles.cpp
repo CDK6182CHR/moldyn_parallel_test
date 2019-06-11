@@ -23,21 +23,26 @@ SystemOfParticles::SystemOfParticles () :
 	lattice_parameter(0.0)
 	{}
         
-SystemOfParticles::SystemOfParticles (int N, double temperature, double time_step) {
+SystemOfParticles::SystemOfParticles (int N, double temperature, double dens, double time_step) {
 	
 	number_of_particles = N;
-	r = new double[3*N];	//Position
-	v = new double[3*N];	//Velocity
-	F = new double[3*N];	//Force
-	m = new double[N];	//Mass
+	
+	r = new double[3*N];	            //Position
+	v = new double[3*N];	            //Velocity
+	F = new double[3*N];	            //Force
+	m = new double[N];	                //Mass
 	particle_name = new std::string [N];
-	f = new Force();		//Force of interaction
+	f = new Force();		            //Force of interaction
+
+	density = dens;
 	T = temperature/f->unit_of_temperature();
+	volume = N/(density*f->get_avogadro_constant())/pow(f->unit_of_space, 3);
+	lateral_size = pow(volume, 1.0/3.0);
 	dt = time_step;
+	
 }
 
-void SystemOfParticles::set_initial_state(double L, double mass, double mean, double dispertion) {
-	lateral_size = L;
+void SystemOfParticles::set_initial_state(double mass, double mean, double dispertion) {
 
 	set_particles_names();
 
@@ -51,18 +56,19 @@ void SystemOfParticles::set_initial_state(double L, double mass, double mean, do
 	}
 	
 	
-	std::cout << "\n\tSystem of units used:\n";
+	std::cout << "\n\tSystem of units used (in S.I. units):\n";
 	std::cout << "\tUnit of energy: " << f->unit_of_energy() << std::endl;
 	std::cout << "\tUnit of space: " << f->unit_of_space() << std::endl;
-	std::cout << "\tUnit of temperature: " << f->unit_of_temperature() << std::endl;
 	std::cout << "\tUnit of time: " << f->unit_of_time() << std::endl;
+	std::cout << "\tUnit of temperature: " << f->unit_of_temperature() << std::endl;
+
 	
 }
 
 void SystemOfParticles::execute_interations(int number_of_interations, Timer *timer) {
 	
 	int factor_percent = number_of_interations/100;
-	int factor_ecran = factor_percent;
+	int factor_ecran = factor_percent*10;
 	int factor_store_state = 100;
 	int factor_xy = 1;
 	
@@ -97,7 +103,7 @@ void SystemOfParticles::execute_interations(int number_of_interations, Timer *ti
 		if (!(it%factor_ecran)) timer->register_time("simulation time: ");
 		
 	}
-	timer->end_timer("simulation time: ");
+	timer->end_timer();
 
 }
 
@@ -111,13 +117,21 @@ void SystemOfParticles::compute_interations() {
     for (unsigned int i = 0; i < 3*number_of_particles - 3; i += 3) {
         for (unsigned int j = i + 3; j < 3*number_of_particles; j += 3) {
         
-            F_ptr = (*f)(&r[i], &r[j], m[i/3], m[j/3]);
-            for (unsigned int k = 0; k < 3; k += 1) {
+            F_ptr = (*f)(&r[i], &r[j]);
+//            for (unsigned int k = 0; k < 3; k += 1) {
+//            
+//                F[i + k] += F_ptr[k];
+//                F[j + k] -= F_ptr[k];
+//                
+//            }
+
+            F[i] += F_ptr[0];
+            F[i + 1] += F_ptr[1];
+            F[i + 2] += F_ptr[2];
             
-                F[i + k] += F_ptr[k];
-                F[j + k] -= F_ptr[k];
-                
-            }
+            F[j] -= F_ptr[0];
+            F[j + 1] -= F_ptr[1];
+            F[j + 2] -= F_ptr[2];
             
         }
     }
@@ -145,6 +159,20 @@ void SystemOfParticles::compute_velocities() {
 	}
 }
 
+void SystemOfParticles::check_wall_collisions() {
+  // Elastic walls
+    for (unsigned int i = 0; i < 3*number_of_particles; i += 3) {
+        for (unsigned int j = 0; j < 3; j += 1) {
+			if (r[i + j] < 0.0) {
+				v[i + j] *=-1.; //- elastic walls
+			}
+			if (r[i + j] >= lateral_size) {
+				v[i + j]*=-1.;  //- elastic walls
+			}
+		}
+	}
+}
+
 double SystemOfParticles::knetic_energy() {
     double v2 = 0.0;
     
@@ -162,7 +190,7 @@ double SystemOfParticles::potential_energy() {
     double U = 0.0;
     for (unsigned int i = 0; i < 3*number_of_particles - 3; i += 3) {
         for (unsigned int j = i + 3; j < 3*number_of_particles; j += 3) {
-            U += f->potential(&r[i], &r[j], m[i/3], m[j/3]);
+            U += f->potential(&r[i], &r[j]);
         }
     }
     return U;
@@ -246,21 +274,7 @@ void SystemOfParticles::set_equal_masses(double mass) {
 
 void SystemOfParticles::set_particles_names() {
 	for (unsigned int i = 0; i < number_of_particles; i += 1) {
-		particle_name[i] = "He"; // Default
-	}
-}
-
-void SystemOfParticles::check_wall_collisions() {
-  // Elastic walls
-    for (unsigned int i = 0; i < 3*number_of_particles; i += 3) {
-        for (unsigned int j = 0; j < 3; j += 1) {
-			if (r[i + j] < 0.0) {
-				v[i + j] *=-1.; //- elastic walls
-			}
-			if (r[i + j] >= lateral_size) {
-				v[i + j]*=-1.;  //- elastic walls
-			}
-		}
+		particle_name[i] = "Ar"; // Default
 	}
 }
 
@@ -299,7 +313,7 @@ void SystemOfParticles::load_state(std::string file_name) {
 	F = new double[3*N];	//Force
 	m = new double[N];	//Mass
 	particle_name = new std::string [N];
-	f = new Force();		//Force of interaction
+	f = new Force(true);		//Force of interaction
 		
 	for (unsigned int i = 0; i < 3*number_of_particles; i += 3) {
 		file >> particle_name[i/3] >> m[i/3] >> r[i] >> r[i + 1] >> r[i + 2] >> v[i] >> v[i + 1] >> v[i + 2];
@@ -395,7 +409,7 @@ void SystemOfParticles::show_infos(int iterator, int factor_ecran, int factor_pe
             std::cout << "\t|" << K*f->unit_of_energy() << "        " ;
            	std::cout << "\t|" << P*f->unit_of_energy() << "        " ;
             std::cout << "\t|" << E*f->unit_of_energy() << "     ";
-            std::cout << "\t|" << K/(3.0*(number_of_particles - 1.0))*f->unit_of_temperature() << "        ";
+            std::cout << "\t|" << K/(3.0*number_of_particles)*f->unit_of_temperature() << "        ";
             std::cout << std::endl;
             std::cout.flush();
 //            }

@@ -2,21 +2,18 @@
 #include "Timer.hpp"
 #include "SystemOfParticles.hpp"
 
-
+void set_inputs(std::string input_file_name = nullptr);
 
 int main() {
     
-    std::cout << "\n\t ********************\n";
-    std::cout << "\n\t Program Moldyn V 1.1\n";
-    std::cout << "\n\t ********************\n";
+    int number_of_particles = 216;
+    double temperature = 87.0;
+    double density = 3.5e4;
     
-    std::cout << "\n\t A simple Particle Dynamics program \n";
-    std::cout << "\t for simulating interacting point particles.\n";
+    set_inputs();
     
-    std::cout << "\n\tCopyright (C) 2019  Vagner Bessa, Crateus - CE, Brazil.\n";
-    
-    SystemOfParticles gas(64, 80.0);
-    gas.set_initial_state(3.9);
+    SystemOfParticles gas(number_of_particles, temperature, density);
+    gas.set_initial_state();
 
     Timer timer;
     
@@ -27,4 +24,22 @@ int main() {
     timer.end_timer("Simulation lasted ");
     
     return 0;
+}
+
+void set_inputs(std::string input_file_name) {
+    if (file_name == nullptr) {
+        std::cout << "\n\t********************\n";
+        std::cout << "\n\tProgram Moldyn V 1.1\n";
+        std::cout << "\n\t********************\n";
+        
+        std::cout << "\n\tA simple Particle Dynamics program \n";
+        std::cout << "\tfor simulating interacting point particles.\n";
+        
+        std::cout << "\n\tCopyright (C) 2019  Vagner Bessa, Crateus - CE, Brazil.\n";
+        
+        std::cout << "\n\tRuning with default values em parameters:\n";
+        std::cout << "\t" << number_of_particles << " atoms of Ar";
+        std::cout << " at T = " <<  temperature;
+        std::cout << " and density of " << density << " moles/m^3.\n";
+    }
 }

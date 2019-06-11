@@ -31,7 +31,7 @@ $(LIB)$(SRC2:.cpp=.o): $(SOURCES)$(SRC2) $(INCLUDE)$(INC2)
 	$(CXX) $(CPPFLAGS)	-c $< -o $@
 $(LIB)$(SRC3:.cpp=.o): $(SOURCES)$(SRC3) $(INCLUDE)$(INC3)
 	$(CXX) $(CPPFLAGS)	-c $< -o $@
-$(LIB)$(MAIN:.cpp=.o): $(MAIN)
+$(LIB)$(MAIN:.cpp=.o): $(MAIN) $(INCLUDE)$(INC1) $(INCLUDE)$(INC2) $(INCLUDE)$(INC3)
 	$(CXX) $(CPPFLAGS)	-c $< -o $@
 	
 $(EXEC): $(OBJS)
