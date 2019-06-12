@@ -12,7 +12,9 @@ Force::Force(double sigma, double epsilon, double mass)
     p_unit_mass *= mass;                                                           // In units of atomic mass
     p_unit_time = sqrt(p_unit_mass/p_unit_energy)*p_unit_space;
     p_unit_temperature = pow(p_unit_space,2)*p_unit_mass/pow(p_unit_time,2)/Kb;
-    
+    p_unit_pressure = p_unit_energy/pow(p_unit_space,3);
+    p_unit_gas_constant = (p_unit_energy/p_unit_temperature)*avogadro_constant;       // J.mol-1 
+    p_unit_heat_capacity = pow(p_unit_energy,2)/pow(p_unit_temperature,2); 
 }
 
 
@@ -60,6 +62,21 @@ double Force::unit_of_energy() {
 double Force::unit_of_temperature() {
 	return p_unit_temperature;
 }
+double Force::unit_of_pressure(){
+    return p_unit_pressure;
+}
+double Force::unit_of_heat_capacity() {
+    return p_unit_heat_capacity;
+}
+double Force::unit_of_gas_constant() {
+    return p_unit_gas_constant;
+}
 double Force::get_avogadro_constant() {
     return avogadro_constant;
+}
+double Force::get_boltzman_constant() {
+    return Kb;
+}
+double Force::get_gas_constant() {
+    return gas_constant;
 }
