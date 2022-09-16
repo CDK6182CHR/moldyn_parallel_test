@@ -1,16 +1,16 @@
-# Bessa's Moldyn, a C++ simulation program - Version 1.0 06/06/2019
-A c++ code of Molecular Dynamics of point particles for general purpose
+# Moldyn, a C++ simulation program - Version 1.0 06/06/2019
 
 ## GENERAL NOTES
 
-- This is a free C++ library for general purporse (`main.cpp` contains a sample usage).
+- This is a 3D particle simulation program for general purporse (`main.cpp` contains a sample usage).
 - It was written and only tested in Linux (Ubuntu 18.04) 64bits system.
 - Clone or download, open terminal on folder, `make` and then `make run`.
+- You can set parameter in the main.cpp file.
 =======
 
 ## BASIC GUIED
 
-- The Bessa's moldyn library simulates a 3D system of interacting particles via [Lennard-Jones potential](https://en.wikipedia.org/wiki/Lennard-Jones_potential). The default simulation system is made of Argon atoms enclosed in a elastic wall recipient (refletions on the wall are perfectly elastic), therefore the mechanical energy is constant ([microcanonical ensemble](https://en.wikipedia.org/wiki/Microcanonical_ensemble)), while the temperature fluctuates around an average value, and the system undergoes throught sussesives isochoric themodynamical transformations untill equilibrium as the simulation converges. The convergence can be live checked as the "Error" outuput on screen, which computs the relative error on measuring the [gas constant](https://en.wikipedia.org/wiki/Gas_constant).
+- Moldyn program simulates a 3D system of interacting particles via [Lennard-Jones potential](https://en.wikipedia.org/wiki/Lennard-Jones_potential). The default simulation system is made of Argon atoms enclosed in a elastic wall recipient (refletions on the wall are perfectly elastic), therefore the mechanical energy is constant ([microcanonical ensemble](https://en.wikipedia.org/wiki/Microcanonical_ensemble)), while the temperature fluctuates around an average value, and the system undergoes throught sussesives isochoric themodynamical transformations untill equilibrium as the simulation converges. The convergence can be live checked as the "Error" outuput on screen, which computs the relative error on measuring the [gas constant](https://en.wikipedia.org/wiki/Gas_constant).
 
 - The inputs are (check `main.cpp` file):
     1. Number of particles (works better with powers of 3).
@@ -36,5 +36,5 @@ A c++ code of Molecular Dynamics of point particles for general purpose
 
 - Contact:	   vagner.bessa@ifce.edu.br
                bessavagner@gmail.com
-			   instagram.com/vagner.bessa
+			   twitter.com/vagner.bessa
 			   github: bessavagner
