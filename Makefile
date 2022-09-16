@@ -23,15 +23,21 @@ CPPFLAGS    =	-std=c++11 -I $(INCLUDE)
 
 EXEC = rmoldyn
 
+MKDIR_LIB=@mkdir -p $(LIB) 
+
 build: $(EXEC)
 
 $(LIB)$(SRC1:.cpp=.o): $(SOURCES)$(SRC1) $(INCLUDE)$(INC1) $(INCLUDE)$(INC3)
+	$(MKDIR_LIB)
 	$(CXX) $(CPPFLAGS)	-c $< -o $@
 $(LIB)$(SRC2:.cpp=.o): $(SOURCES)$(SRC2) $(INCLUDE)$(INC2)
+	$(MKDIR_LIB)
 	$(CXX) $(CPPFLAGS)	-c $< -o $@
 $(LIB)$(SRC3:.cpp=.o): $(SOURCES)$(SRC3) $(INCLUDE)$(INC3)
+	$(MKDIR_LIB)
 	$(CXX) $(CPPFLAGS)	-c $< -o $@
 $(LIB)$(MAIN:.cpp=.o): $(MAIN) $(INCLUDE)$(INC1) $(INCLUDE)$(INC2) $(INCLUDE)$(INC3)
+	$(MKDIR_LIB)
 	$(CXX) $(CPPFLAGS)	-c $< -o $@
 	
 $(EXEC): $(OBJS)
