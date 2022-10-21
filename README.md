@@ -8,7 +8,6 @@ A particle dynamics simulator
 - Tested in Linux (Ubuntu 18.04, 20.04) 64bits system.
 - Clone or download, open terminal on folder, `make` and then `make run`.
 - You can set parameter in the main.cpp file.
-=======
 
 ## BASIC GUIED
 
