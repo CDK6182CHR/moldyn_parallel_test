@@ -1,9 +1,11 @@
-# Moldyn, a C++ simulation program - Version 1.0 06/06/2019
+# Moldyn
+
+A particle dynamics simulator
 
 ## GENERAL NOTES
 
 - This is a 3D particle simulation program for general purporse (`main.cpp` contains a sample usage).
-- It was written and only tested in Linux (Ubuntu 18.04) 64bits system.
+- Tested in Linux (Ubuntu 18.04, 20.04) 64bits system.
 - Clone or download, open terminal on folder, `make` and then `make run`.
 - You can set parameter in the main.cpp file.
 =======
@@ -28,13 +30,3 @@
     6. `positions.xyz` is a file in [xyz format](https://en.wikipedia.org/wiki/XYZ_file_format), and can be read with [VMD](https://www.ks.uiuc.edu/Research/vmd/).
     7. `Temperature.dat` contains the temperature as a function of time.
 =======
-
-## DEVELOPER'S INFORMATION:
-
-- Affiliation: Instituto Federal de Ciência, Educação e Tecnologia do Ceará (IFCE) - Brazil
-			   *Campus* Crateús.
-
-- Contact:	   vagner.bessa@ifce.edu.br
-               bessavagner@gmail.com
-			   twitter.com/vagner.bessa
-			   github: bessavagner
