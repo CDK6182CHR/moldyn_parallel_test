@@ -70,13 +70,13 @@ void SystemOfParticles::set_initial_state(double mass, double mean, double dispe
 	
 }
 
-void SystemOfParticles::execute_interations(int number_of_interations, Timer *timer) {
-	
-	int factor_percent = number_of_interations/100;
+void SystemOfParticles::execute_interations(int number_of_interations, Timer* timer) {
+
+	int factor_percent = number_of_interations / 100;
 	int factor_ecran = factor_percent;
 	int factor_store_state = 100;
 	int factor_xy = 1;
-	
+
 	double average_temperature = 0.0;
 	double average_pressure = 0.0;
 	double average_energy = 0.0;
@@ -84,50 +84,58 @@ void SystemOfParticles::execute_interations(int number_of_interations, Timer *ti
 	double heat_capacity = 0.0;
 	double time;
 	double gas_constant = 0.0;
-	
+
 	if (timer == nullptr) {
-	    timer = new Timer();
+		timer = new Timer();
 	}
-	
+
 	timer->start_timer();
 	for (unsigned int it = 1; it < number_of_interations + 1; it += 1) {
-		
-		for (unsigned int i = 0; i < 3*number_of_particles; i += 1) {
-		    F[i] = 0.0;
-		}	
-		
-		//================================================
-		//      THE VELOCITY-VERLET BLOCK
-		compute_interations();
 
-		move_particles();
-		
-		compute_interations();
-		      
-		compute_velocities();
-		//================================================
-		
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+		{
+#ifdef _OPENMP
+#pragma omp for
+#endif
+			for (int i = 0; i < 3 * number_of_particles; i += 1) {
+				F[i] = 0.0;
+			}
+
+			//================================================
+			//      THE VELOCITY-VERLET BLOCK
+			compute_interations();
+
+			move_particles();
+
+			compute_interations();
+
+			compute_velocities();
+			//================================================
+		}   // omp parallel
+
 		pressure = check_wall_collisions();
-		
-	    K_energy = knetic_energy();
-	    P_energy =  potential_energy();
+
+		K_energy = knetic_energy();
+		P_energy = potential_energy();
 		energy = K_energy + P_energy;
-		    average_pressure += pressure;
-		    average_temperature += T;
-		    average_energy += energy;
-		    square_energy += energy*energy;
-		    time = it*dt;
-		    heat_capacity = (square_energy/it - pow(average_energy/it,2))/(T*T);        // From canonical ensemble
-		    
-		    gas_constant = average_pressure*volume/(number_of_particles*average_temperature);
-		    gas_constant *= f->unit_of_gas_constant();
-		
+		average_pressure += pressure;
+		average_temperature += T;
+		average_energy += energy;
+		square_energy += energy * energy;
+		time = it * dt;
+		heat_capacity = (square_energy / it - pow(average_energy / it, 2)) / (T * T);        // From canonical ensemble
+
+		gas_constant = average_pressure * volume / (number_of_particles * average_temperature);
+		gas_constant *= f->unit_of_gas_constant();
+
 		store_files(it, factor_store_state, factor_xy, average_pressure, heat_capacity);
-		
+
 		show_infos(it, factor_ecran, factor_percent, average_pressure, gas_constant);
-		
-		if (!(it%factor_ecran)) timer->register_time("simulation time: ");
-		
+
+		if (!(it % factor_ecran)) timer->register_time("simulation time: ");
+
 	}
 	timer->end_timer();
 
@@ -140,7 +148,7 @@ void SystemOfParticles::compute_interations() {
 	// the velocity at the last step of the Velocity-Verlet
 	// algorithm
 #ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic)
+#pragma omp for schedule(dynamic)
 #endif
     for (int i = 0; i < 3*number_of_particles; i += 3) {
         for (int j = 0; j < 3*number_of_particles; j += 3) {
@@ -169,7 +177,7 @@ void SystemOfParticles::compute_interations() {
 void SystemOfParticles::move_particles() {
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp for
 #endif
     for (int i = 0; i < 3*number_of_particles; i += 3) {
     	for (int j = 0; j < 3; j += 1) {
@@ -183,7 +191,7 @@ void SystemOfParticles::move_particles() {
 void SystemOfParticles::compute_velocities() {
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp for
 #endif
     for (int i = 0; i < 3*number_of_particles; i += 3) {
     	for (int j = 0; j < 3; j += 1) {
