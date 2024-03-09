@@ -1,2 +1,6 @@
 lib/*
 moldyn
+build/
+install/
+out/
+.vs
