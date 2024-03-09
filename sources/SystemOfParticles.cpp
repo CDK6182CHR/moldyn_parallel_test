@@ -139,11 +139,14 @@ void SystemOfParticles::compute_interations() {
 	// the force array is not set to zero in order to compute
 	// the velocity at the last step of the Velocity-Verlet
 	// algorithm
-	double *F_ptr;
-    for (unsigned int i = 0; i < 3*number_of_particles - 3; i += 3) {
-        for (unsigned int j = i + 3; j < 3*number_of_particles; j += 3) {
+#ifdef _OPENMP
+#pragma omp parallel for schedule(dynamic)
+#endif
+    for (int i = 0; i < 3*number_of_particles; i += 3) {
+        for (int j = 0; j < 3*number_of_particles; j += 3) {
+			if (i == j) continue;
         
-            F_ptr = (*f)(&r[i], &r[j]);
+            auto F_ptr = (*f)(&r[i], &r[j]);   // move construct
 //            for (unsigned int k = 0; k < 3; k += 1) {
 //            
 //                F[i + k] += F_ptr[k];
@@ -155,9 +158,9 @@ void SystemOfParticles::compute_interations() {
             F[i + 1] += F_ptr[1];
             F[i + 2] += F_ptr[2];
             
-            F[j] -= F_ptr[0];
-            F[j + 1] -= F_ptr[1];
-            F[j + 2] -= F_ptr[2];
+            //F[j] -= F_ptr[0];
+            //F[j + 1] -= F_ptr[1];
+            //F[j + 2] -= F_ptr[2];
             
         }
     }
@@ -165,8 +168,11 @@ void SystemOfParticles::compute_interations() {
 
 void SystemOfParticles::move_particles() {
 
-    for (unsigned int i = 0; i < 3*number_of_particles; i += 3) {
-    	for (unsigned int j = 0; j < 3; j += 1) {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < 3*number_of_particles; i += 3) {
+    	for (int j = 0; j < 3; j += 1) {
     	
     		r[i + j] += v[i + j]*dt + 0.5*(F[i + j]/m[i/3])*dt*dt;
     		
@@ -176,8 +182,11 @@ void SystemOfParticles::move_particles() {
 
 void SystemOfParticles::compute_velocities() {
 
-    for (unsigned int i = 0; i < 3*number_of_particles; i += 3) {
-    	for (unsigned int j = 0; j < 3; j += 1) {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < 3*number_of_particles; i += 3) {
+    	for (int j = 0; j < 3; j += 1) {
     	
     		v[i + j] += 0.5*(F[i + j]/m[i/3])*dt;
     		
@@ -189,8 +198,8 @@ double SystemOfParticles::check_wall_collisions() {
   // Elastic walls
   double P = 0.0;
   
-    for (unsigned int i = 0; i < 3*number_of_particles; i += 3) {
-        for (unsigned int j = 0; j < 3; j += 1) {
+    for (int i = 0; i < 3*number_of_particles; i += 3) {
+        for (int j = 0; j < 3; j += 1) {
 			if (r[i + j] < 0.0) {
 				v[i + j] *=-1.; //- elastic walls
 				P += 2.0*m[i/3]*abs(v[i + j])/dt;        // the average forçe from the walls

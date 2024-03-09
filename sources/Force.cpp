@@ -4,7 +4,6 @@
 
 
 Force::Force(double sigma, double epsilon, double mass)
-    : p_force {0., 0., 0.}
 {
 
     p_unit_energy *= epsilon;                                                      // In units of 993.65322254 J.mol-1 (for Ar)
@@ -18,7 +17,8 @@ Force::Force(double sigma, double epsilon, double mass)
 }
 
 
-double* Force::operator () (double *r, double *ro) {
+vec3_t Force::operator () (double *r, double *ro)const {
+    vec3_t force{};
 
     double Rx = r[0] - ro[0];
     double Ry = r[1] - ro[1];
@@ -29,11 +29,11 @@ double* Force::operator () (double *r, double *ro) {
     
     double C = 48.0*pow(Rm2,4)*(Rm6 - 0.5);
 
-    p_force[0] = C*Rx;///unitForce;
-    p_force[1] = C*Ry;///unitForce;
-    p_force[2] = C*Rz;///unitForce;
+    force[0] = C*Rx;///unitForce;
+    force[1] = C*Ry;///unitForce;
+    force[2] = C*Rz;///unitForce;
     
-    return p_force;
+    return force;
     
 }
 

@@ -1,6 +1,9 @@
 #ifndef FORCELJ_H
 #define FORCELJ_H
 #include <math.h>
+#include <array>
+
+#include "common.hpp"
 
 // Lennard-Jonnes Potential for modeling interactiong particles
 
@@ -27,12 +30,10 @@ class Force
         double p_unit_gas_constant = (p_unit_energy/p_unit_temperature)*avogadro_constant;       // J.mol-1
         double p_unit_heat_capacity = pow(p_unit_energy,2)/pow(p_unit_temperature,2);
         
-        double p_force[3];
-        
     public:
         Force(double sigma = sigma_Ar, double epsilon = epsilon_Ar, double mass = mass_Ar);
 
-        double* operator () (double *r, double *ro);
+        vec3_t operator () (double *r, double *ro)const;
                 
         double potential(double *r, double *ro);
         
