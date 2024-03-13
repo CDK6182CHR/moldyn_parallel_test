@@ -17,8 +17,8 @@ Force::Force(double sigma, double epsilon, double mass)
 }
 
 
-vec3_t Force::operator () (double *r, double *ro)const {
-    vec3_t force{};
+typename Eigen::Vector3d Force::operator () (const Eigen::Vector3d& r, const Eigen::Vector3d& ro)const {
+    Eigen::Vector3d force{};
 
     double Rx = r[0] - ro[0];
     double Ry = r[1] - ro[1];
@@ -37,7 +37,7 @@ vec3_t Force::operator () (double *r, double *ro)const {
     
 }
 
-double Force::potential(double *r, double *ro) {
+double Force::potential(const vec3_t& r, const vec3_t& ro) {
 
     double Rx = r[0] - ro[0];
     double Ry = r[1] - ro[1];

@@ -4,6 +4,7 @@
 #include <array>
 
 #include "common.hpp"
+#include "eigen_wrapper.hpp"
 
 // Lennard-Jonnes Potential for modeling interactiong particles
 
@@ -33,9 +34,9 @@ class Force
     public:
         Force(double sigma = sigma_Ar, double epsilon = epsilon_Ar, double mass = mass_Ar);
 
-        vec3_t operator () (double *r, double *ro)const;
+        Eigen::Vector3d operator () (const Eigen::Vector3d& r, const Eigen::Vector3d& ro)const;
                 
-        double potential(double *r, double *ro);
+        double potential(const vec3_t& r, const vec3_t& ro);
         
         double unit_of_time();
         double unit_of_energy();

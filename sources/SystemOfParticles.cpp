@@ -12,9 +12,9 @@
 
 
 SystemOfParticles::SystemOfParticles() :
-	r(nullptr),
-	v(nullptr),
-	m(nullptr),
+	r(),
+	v(),
+	m(),
 	number_of_particles(0),
 	f(nullptr),
 	particle_name(nullptr),
@@ -23,17 +23,13 @@ SystemOfParticles::SystemOfParticles() :
 	lattice_parameter(0.0)
 {}
 
-SystemOfParticles::SystemOfParticles(int N, double temperature, double dens, double time_step) {
+SystemOfParticles::SystemOfParticles(int N, double temperature, double dens, double time_step):
+	r(N,3), v(N,3), F(N, 3), m(N)
+{
 
 	number_of_particles = N;
-
-	r.reset(new double[3 * N]);	            //Position
-	v.reset(new double[3 * N]);	            //Velocity
-	F.reset(new double[3 * N]);	            //Force
-	m.reset(new double[N]);	                //Mass
 	particle_name.reset(new std::string[N]);
 	f.reset(new Force());		            //Force of interaction
-
 
 	T = temperature / f->unit_of_temperature();
 
@@ -56,10 +52,7 @@ void SystemOfParticles::set_initial_state(double mass, double mean, double dispe
 	set_velocities(mean, dispertion);
 
 	compute_interations(); // In order to aquire units;
-	for (unsigned int i = 0; i < 3 * number_of_particles; i += 1) {
-		F[i] = 0.0;
-	}
-
+	F.fill(0);
 
 	std::cout << "\n\tSystem of units used (in S.I. units):\n";
 	std::cout << "\tUnit of energy: " << f->unit_of_energy() << std::endl;
@@ -93,17 +86,18 @@ void SystemOfParticles::execute_interations(int number_of_interations, Timer* ti
 	for (unsigned int it = 1; it < number_of_interations + 1; it += 1) {
 
 		double P_loc = 0, K_loc = 0, U_loc = 0;
+		F.fill(0);
 
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:P_loc) reduction(+:K_loc) reduction(+:U_loc)
 #endif
 		{
-#ifdef _OPENMP
-#pragma omp for
-#endif
-			for (int i = 0; i < 3 * number_of_particles; i += 1) {
-				F[i] = 0.0;
-			}
+//#ifdef _OPENMP
+//#pragma omp for
+//#endif
+//			for (int i = 0; i < 3 * number_of_particles; i += 1) {
+//				F[i] = 0.0;
+//			}
 
 			//================================================
 			//      THE VELOCITY-VERLET BLOCK
@@ -159,25 +153,12 @@ void SystemOfParticles::compute_interations() {
 #ifdef _OPENMP
 #pragma omp for schedule(dynamic)
 #endif
-	for (int i = 0; i < 3 * number_of_particles; i += 3) {
-		for (int j = 0; j < 3 * number_of_particles; j += 3) {
+	for (int i = 0; i < number_of_particles; i++) {
+		for (int j = 0; j < number_of_particles; j++) {
 			if (i == j) continue;
 
-			auto F_ptr = (*f)(&r[i], &r[j]);   // move construct
-			//            for (unsigned int k = 0; k < 3; k += 1) {
-			//            
-			//                F[i + k] += F_ptr[k];
-			//                F[j + k] -= F_ptr[k];
-			//                
-			//            }
-
-			F[i] += F_ptr[0];
-			F[i + 1] += F_ptr[1];
-			F[i + 2] += F_ptr[2];
-
-			//F[j] -= F_ptr[0];
-			//F[j + 1] -= F_ptr[1];
-			//F[j + 2] -= F_ptr[2];
+			auto F_sub = f->operator()(r.row(i), r.row(j));   // move construct
+			F.row(i) += F_sub;   // assign
 
 		}
 	}
@@ -188,10 +169,10 @@ void SystemOfParticles::move_particles() {
 #ifdef _OPENMP
 #pragma omp for
 #endif
-	for (int i = 0; i < 3 * number_of_particles; i += 3) {
-		for (int j = 0; j < 3; j += 1) {
+	for (int i = 0; i < number_of_particles; i++) {
+		for (int j = 0; j < 3; j++) {
 
-			r[i + j] += v[i + j] * dt + 0.5 * (F[i + j] / m[i / 3]) * dt * dt;
+			r(i, j) += v(i, j) * dt + 0.5 * (F(i, j) / m[i]) * dt * dt;
 
 		}
 	}
@@ -202,10 +183,10 @@ void SystemOfParticles::compute_velocities() {
 #ifdef _OPENMP
 #pragma omp for
 #endif
-	for (int i = 0; i < 3 * number_of_particles; i += 3) {
-		for (int j = 0; j < 3; j += 1) {
+	for (int i = 0; i < number_of_particles; i++) {
+		for (int j = 0; j < 3; j++) {
 
-			v[i + j] += 0.5 * (F[i + j] / m[i / 3]) * dt;
+			v(i, j) += 0.5 * (F(i, j) / m[i]) * dt;
 
 		}
 	}
@@ -218,15 +199,15 @@ double SystemOfParticles::check_wall_collisions() {
 #ifdef _OPENMP
 #pragma omp for 
 #endif
-	for (int i = 0; i < 3 * number_of_particles; i += 3) {
+	for (int i = 0; i < number_of_particles; i++) {
 		for (int j = 0; j < 3; j += 1) {
-			if (r[i + j] < 0.0) {
-				v[i + j] *= -1.; //- elastic walls
-				P += 2.0 * m[i / 3] * abs(v[i + j]) / dt;        // the average forçe from the walls
+			if (r(i, j) < 0.0) {
+				v(i, j) *= -1.; //- elastic walls
+				P += 2.0 * m[i] * abs(v(i, j)) / dt;        // the average forçe from the walls
 			}
-			if (r[i + j] >= lateral_size) {
-				v[i + j] *= -1.;  //- elastic walls
-				P += 2.0 * m[i / 3] * abs(v[i + j]) / dt;        // the average forçe from the walls
+			if (r(i, j) >= lateral_size) {
+				v(i, j) *= -1.;  //- elastic walls
+				P += 2.0 * m[i] * abs(v(i, j)) / dt;        // the average forçe from the walls
 			}
 		}
 	}
@@ -241,9 +222,9 @@ double SystemOfParticles::knetic_energy() {
 #ifdef _OPENMP
 #pragma omp for
 #endif
-	for (int i = 0; i < 3 * number_of_particles; i += 3) {
-		for (int j = 0; j < 3; j += 1) {
-			v2 += m[i / 3] * v[i + j] * v[i + j];
+	for (int i = 0; i < number_of_particles; i++) {
+		for (int j = 0; j < 3; j++) {
+			v2 += m[i] * v(i, j) * v(i, j);
 		}
 	}
 	//T = v2/(3*(number_of_particles - 1));   // 2024.03.09  for parallel version: put outside
@@ -261,9 +242,9 @@ double SystemOfParticles::potential_energy() {
 #ifdef _OPENMP
 #pragma omp for schedule(dynamic)
 #endif
-	for (int i = 0; i < 3 * number_of_particles - 3; i += 3) {
-		for (int j = i + 3; j < 3 * number_of_particles; j += 3) {
-			U += f->potential(&r[i], &r[j]);
+	for (int i = 0; i < number_of_particles - 1; i++) {
+		for (int j = i + 1; j < number_of_particles; j++) {
+			U += f->potential(r.row(i), r.row(j));
 		}
 	}
 	return U;
@@ -277,16 +258,16 @@ void SystemOfParticles::set_positions() {
 	lattice_parameter = lateral_size / n;        // Distance between molecules
 
 	int idx = 0;
-	int TN = 3 * number_of_particles;
+	int TN = number_of_particles;
 	for (unsigned int i = 0; i < n; i++) {
 		for (unsigned int j = 0; j < n; j++) {
 			for (unsigned int k = 0; k < n; k++) {
 				if (idx < TN) {
-					r[idx] = (i + 0.5) * lattice_parameter;
-					r[idx + 1] = (j + 0.5) * lattice_parameter;
-					r[idx + 2] = (k + 0.5) * lattice_parameter;
+					r(idx, 0) = (i + 0.5) * lattice_parameter;
+					r(idx, 1) = (j + 0.5) * lattice_parameter;
+					r(idx, 2) = (k + 0.5) * lattice_parameter;
 				}
-				idx += 3;
+				idx++;
 			}
 		}
 	}
@@ -304,12 +285,13 @@ void SystemOfParticles::set_velocities(double mean, double dispertion) {
 
 	std::normal_distribution<double> distribution(mean, dispertion);
 
-	for (unsigned int i = 0; i < 3 * number_of_particles; i += 1) {
-		v[i] = distribution(generator);
+	auto v_view = Eigen::Map<Eigen::VectorXd>(v.data(), v.size());
+	for (unsigned int i = 0; i < 3 * number_of_particles; i++) {
+		v_view[i] = distribution(generator);
 	}
-	for (unsigned int i = 0; i < 3 * number_of_particles; i += 3) {
+	for (unsigned int i = 0; i < number_of_particles; i++) {
 		for (unsigned int j = 0; j < 3; j += 1) {
-			Vcm[j] += m[i / 3] * v[i + j];
+			Vcm[j] += m[i] * v(i, j);
 		}
 	}
 
@@ -321,19 +303,19 @@ void SystemOfParticles::set_velocities(double mean, double dispertion) {
 		Vcm[j] /= number_of_particles * M;
 	}
 
-	for (unsigned int i = 0; i < 3 * number_of_particles; i += 3) {
+	for (unsigned int i = 0; i < number_of_particles; i++) {
 		for (unsigned int j = 0; j < 3; j += 1) {
-			v[i + j] -= Vcm[j];
-			v2 += m[i / 3] * v[i + j] * v[i + j];
+			v(i, j) -= Vcm[j];
+			v2 += m[i] * v(i, j) * v(i, j);
 		}
 	}
 
 	double To = v2 / (3 * (number_of_particles - 1));
 	double temperature_factor = sqrt(T / To);
 
-	for (unsigned int i = 0; i < 3 * number_of_particles; i += 3) {
+	for (unsigned int i = 0; i < number_of_particles; i ++) {
 		for (unsigned int j = 0; j < 3; j += 1) {
-			v[i + j] *= temperature_factor;
+			v(i, j) *= temperature_factor;
 		}
 	}
 
@@ -359,15 +341,16 @@ void SystemOfParticles::load_state(std::string file_name) {
 
 	int N = number_of_particles;
 
-	r.reset(new double[3 * N]);	//Position
-	v.reset(new double[3 * N]);	//Velocity
-	F.reset(new double[3 * N]);	//Force
-	m.reset(new double[N]);	//Mass
+	r = dof_mat_t(N, 3);
+	v = dof_mat_t(N, 3);
+	F = dof_mat_t(N, 3);
+	m = Eigen::VectorXd(N);
+
 	particle_name.reset(new std::string[N]);
 	f.reset(new Force(true));		//Force of interaction
 
-	for (unsigned int i = 0; i < 3 * number_of_particles; i += 3) {
-		file >> particle_name[i / 3] >> m[i / 3] >> r[i] >> r[i + 1] >> r[i + 2] >> v[i] >> v[i + 1] >> v[i + 2];
+	for (unsigned int i = 0; i < number_of_particles; i++) {
+		file >> particle_name[i] >> m[i] >> r(i, 0) >> r(i, 1) >> r(i, 2) >> v(i, 0) >> v(i, 1) >> v(i, 2);
 	}
 
 	file.close();
@@ -391,8 +374,8 @@ void SystemOfParticles::store_state(std::string file_name) {
 	for (unsigned int i = 0; i < number_of_particles; i += 1) {
 		file << particle_name[i] << "\t";
 		file << m[i] << "\t";
-		file << r[i] << "\t" << r[i + 1] << "\t" << r[i + 2] << "\t";
-		file << v[i] << "\t" << v[i + 1] << "\t" << v[i + 2] << std::endl;
+		file << r(i, 0) << "\t" << r(i, 1) << "\t" << r(i, 2) << "\t";
+		file << v(i, 0) << "\t" << v(i, 1) << "\t" << v(i, 2) << std::endl;
 	}
 	file.close();
 }
@@ -406,10 +389,10 @@ void SystemOfParticles::store_xyz_file(bool append, std::string file_name, std::
 		file.open(file_name);
 		file << number_of_particles << std::endl;
 	}
-	for (unsigned int idx = 0; idx < 3 * number_of_particles; idx += 3) {
+	for (unsigned int idx = 0; idx < number_of_particles; idx ++) {
 		int i = idx / 3;
 		file << particle_name[i];
-		file << delimiter << r[idx] << delimiter << r[idx + 1] << delimiter << r[idx + 2] << std::endl;
+		file << delimiter << r(idx, 0) << delimiter << r(idx, 1) << delimiter << r(idx, 2) << std::endl;
 	}
 	file.close();
 }

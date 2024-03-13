@@ -3,6 +3,8 @@
 
 #include <memory>
 #include "Force.hpp"
+#include "eigen_wrapper.hpp"
+
 
 class Force;
 class Timer;
@@ -12,7 +14,8 @@ class SystemOfParticles
 
 private:
 	int number_of_particles;
-	std::unique_ptr<double[]>  r, v, F, m;  // position, velocity, force, mass
+	dof_mat_t  r, v, F;  // position, velocity, force
+	Eigen::VectorXd  m; // mass
 	double T;               // Temperature
 	double density;
 	double volume;
