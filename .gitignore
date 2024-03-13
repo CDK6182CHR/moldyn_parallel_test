@@ -5,3 +5,13 @@ install/
 out/
 .vs
 CMakeSettings.json
+x64
+x86
+*.dat
+*.sln
+*.vcxproj
+*.filters
+*.user
+*.xyz
+Vtune Profiler Results
+.vscode

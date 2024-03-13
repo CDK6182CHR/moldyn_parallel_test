@@ -74,8 +74,8 @@ void SystemOfParticles::execute_interations(int number_of_interations, Timer* ti
 
 	int factor_percent = number_of_interations / 100;
 	int factor_ecran = factor_percent;
-	int factor_store_state = 100;
-	int factor_xy = 1;
+	int factor_store_state = 1000;
+	int factor_xy = 1000;
 
 	double average_temperature = 0.0;
 	double average_pressure = 0.0;
@@ -92,8 +92,10 @@ void SystemOfParticles::execute_interations(int number_of_interations, Timer* ti
 	timer->start_timer();
 	for (unsigned int it = 1; it < number_of_interations + 1; it += 1) {
 
+		double P_loc = 0, K_loc = 0, U_loc = 0;
+
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(+:P_loc) reduction(+:K_loc) reduction(+:U_loc)
 #endif
 		{
 #ifdef _OPENMP
@@ -113,13 +115,20 @@ void SystemOfParticles::execute_interations(int number_of_interations, Timer* ti
 
 			compute_velocities();
 			//================================================
+
+
+			P_loc = check_wall_collisions();
+
+			K_loc = knetic_energy();
+			U_loc = potential_energy();
 		}   // omp parallel
 
-		pressure = check_wall_collisions();
-
-		K_energy = knetic_energy();
-		P_energy = potential_energy();
+		pressure = P_loc;
+		K_energy = K_loc;
+		P_energy = U_loc;
+		T = K_energy * 2 / (3 * (number_of_particles - 1));
 		energy = K_energy + P_energy;
+
 		average_pressure += pressure;
 		average_temperature += T;
 		average_energy += energy;
@@ -206,6 +215,9 @@ double SystemOfParticles::check_wall_collisions() {
   // Elastic walls
   double P = 0.0;
   
+#ifdef _OPENMP
+#pragma omp for 
+#endif
     for (int i = 0; i < 3*number_of_particles; i += 3) {
         for (int j = 0; j < 3; j += 1) {
 			if (r[i + j] < 0.0) {
@@ -226,12 +238,15 @@ double SystemOfParticles::check_wall_collisions() {
 double SystemOfParticles::knetic_energy() {
     double v2 = 0.0;
     
-    for (unsigned int i = 0; i < 3*number_of_particles; i += 3) {
-        for (unsigned int j = 0; j < 3; j += 1) {
+#ifdef _OPENMP
+#pragma omp for
+#endif
+    for (int i = 0; i < 3*number_of_particles; i += 3) {
+        for (int j = 0; j < 3; j += 1) {
             v2 += m[i/3]*v[i + j]*v[i + j];
         }
     }
-    T = v2/(3*(number_of_particles - 1));
+    //T = v2/(3*(number_of_particles - 1));   // 2024.03.09  for parallel version: put outside
     return 0.5*v2;
     
 }
@@ -243,8 +258,11 @@ double SystemOfParticles::Temperature () {
 
 double SystemOfParticles::potential_energy() {
     double U = 0.0;
-    for (unsigned int i = 0; i < 3*number_of_particles - 3; i += 3) {
-        for (unsigned int j = i + 3; j < 3*number_of_particles; j += 3) {
+#ifdef _OPENMP
+#pragma omp for schedule(dynamic)
+#endif
+    for (int i = 0; i < 3*number_of_particles - 3; i += 3) {
+        for (int j = i + 3; j < 3*number_of_particles; j += 3) {
             U += f->potential(&r[i], &r[j]);
         }
     }
