@@ -3,7 +3,7 @@ project(moldyn CXX)
 
 option(ENABLE_OPENMP "use OpenMP for parallel" OFF)
 
-set(HEADERS headers/fileHandler.hpp headers/Force.hpp headers/SystemOfParticles.hpp headers/Timer.hpp)
+set(HEADERS headers/fileHandler.hpp headers/Force.hpp headers/SystemOfParticles.hpp headers/Timer.hpp headers/eigen_wrapper.hpp)
 set(SOURCES sources/Force.cpp sources/SystemOfParticles.cpp sources/Timer.cpp main.cpp)
 
 add_executable(moldyn ${SOURCES} ${HEADERS})
@@ -19,3 +19,6 @@ if (ENABLE_OPENMP)
         message(STATUS "OpenMP not found!")
     endif()
 endif()
+
+find_package(Eigen3 REQUIRED)
+target_link_libraries(moldyn PRIVATE Eigen3::Eigen)
