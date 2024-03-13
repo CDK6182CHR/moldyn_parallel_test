@@ -18,6 +18,7 @@ Force::Force(double sigma, double epsilon, double mass)
 
 
 vec3_t Force::operator () (const vec3_t& r, const vec3_t& ro)const {
+#if 0
     vec3_t force{};
 
     double Rx = r[0] - ro[0];
@@ -34,11 +35,17 @@ vec3_t Force::operator () (const vec3_t& r, const vec3_t& ro)const {
     force[2] = C*Rz;///unitForce;
     
     return force;
-    
+#else 
+    auto dr = r - ro;
+    double Rm2 = 1.0 / (dr.matrix().squaredNorm());
+    double Rm6 = std::pow(Rm2, 3);
+    double C = 48.0 * std::pow(Rm2, 4) * (Rm6 - 0.5);
+    return C * dr;
+#endif
 }
 
 double Force::potential(const vec3_t& r, const vec3_t& ro) {
-
+#if 0
     double Rx = r[0] - ro[0];
     double Ry = r[1] - ro[1];
     double Rz = r[2] - ro[2];
@@ -47,7 +54,12 @@ double Force::potential(const vec3_t& r, const vec3_t& ro) {
     double Rm6 = Rm2*Rm2*Rm2;
 
     return 4.0*Rm6*(Rm6 - 1.0);
-    
+#else
+    auto dr = r - ro;
+    double Rm2 = 1.0 / (dr.matrix().squaredNorm());
+    double Rm6 = std::pow(Rm2, 3);
+    return 4.0 * Rm6 * (Rm6 - 1.0);
+#endif
 }
 
 double Force::unit_of_time() {
