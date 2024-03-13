@@ -15,7 +15,7 @@ class SystemOfParticles
 private:
 	int number_of_particles;
 	dof_mat_t  r, v, F;  // position, velocity, force
-	Eigen::VectorXd  m; // mass
+	site_arr_t  m; // mass
 	double T;               // Temperature
 	double density;
 	double volume;

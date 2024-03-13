@@ -34,7 +34,7 @@ class Force
     public:
         Force(double sigma = sigma_Ar, double epsilon = epsilon_Ar, double mass = mass_Ar);
 
-        Eigen::Vector3d operator () (const Eigen::Vector3d& r, const Eigen::Vector3d& ro)const;
+        vec3_t operator () (const vec3_t& r, const vec3_t& ro)const;
                 
         double potential(const vec3_t& r, const vec3_t& ro);
         

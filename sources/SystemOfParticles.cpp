@@ -24,7 +24,7 @@ SystemOfParticles::SystemOfParticles() :
 {}
 
 SystemOfParticles::SystemOfParticles(int N, double temperature, double dens, double time_step):
-	r(N,3), v(N,3), F(N, 3), m(N)
+	r(N, 3), v(N, 3), F(N, 3), m(N)
 {
 
 	number_of_particles = N;
@@ -166,30 +166,14 @@ void SystemOfParticles::compute_interations() {
 
 void SystemOfParticles::move_particles() {
 
-#ifdef _OPENMP
-#pragma omp for
-#endif
-	for (int i = 0; i < number_of_particles; i++) {
-		for (int j = 0; j < 3; j++) {
-
-			r(i, j) += v(i, j) * dt + 0.5 * (F(i, j) / m[i]) * dt * dt;
-
-		}
-	}
+	// Eigen vectorized operation
+	r += v * dt + F.colwise() / m * dt * dt * 0.5;
 }
 
 void SystemOfParticles::compute_velocities() {
 
-#ifdef _OPENMP
-#pragma omp for
-#endif
-	for (int i = 0; i < number_of_particles; i++) {
-		for (int j = 0; j < 3; j++) {
-
-			v(i, j) += 0.5 * (F(i, j) / m[i]) * dt;
-
-		}
-	}
+	// Eigen vectorized operation
+	v += F.colwise() / m * 0.5 * dt;
 }
 
 double SystemOfParticles::check_wall_collisions() {
