@@ -166,14 +166,40 @@ void SystemOfParticles::compute_interations() {
 
 void SystemOfParticles::move_particles() {
 
+#if 0
+#ifdef _OPENMP
+#pragma omp for
+#endif
+	for (int i = 0; i < number_of_particles; i++) {
+		for (int j = 0; j < 3; j++) {
+
+			r(i, j) += v(i, j) * dt + 0.5 * (F(i, j) / m[i]) * dt * dt;
+
+		}
+	}
+#else
 	// Eigen vectorized operation
 	r += v * dt + F.colwise() / m * dt * dt * 0.5;
+#endif
 }
 
 void SystemOfParticles::compute_velocities() {
 
+#if 0
+#ifdef _OPENMP
+#pragma omp for
+#endif
+	for (int i = 0; i < number_of_particles; i++) {
+		for (int j = 0; j < 3; j++) {
+
+			v(i, j) += 0.5 * (F(i, j) / m[i]) * dt;
+
+		}
+	}
+#else
 	// Eigen vectorized operation
 	v += F.colwise() / m * 0.5 * dt;
+#endif
 }
 
 double SystemOfParticles::check_wall_collisions() {
