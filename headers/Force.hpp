@@ -34,9 +34,9 @@ class Force
     public:
         Force(double sigma = sigma_Ar, double epsilon = epsilon_Ar, double mass = mass_Ar);
 
-        vec3_t operator () (const vec3_t& r, const vec3_t& ro)const;
+        vec3_t operator () (const Eigen::Ref<vec3_t>& r, const Eigen::Ref<vec3_t>& ro)const;
                 
-        double potential(const vec3_t& r, const vec3_t& ro);
+        double potential(const Eigen::Ref<vec3_t>& r, const Eigen::Ref<vec3_t>& ro);
         
         double unit_of_time();
         double unit_of_energy();
