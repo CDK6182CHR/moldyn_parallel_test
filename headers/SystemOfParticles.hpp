@@ -60,7 +60,7 @@ public:
 
 	void set_particles_name(std::string name = "Ar");
 
-	void execute_interations(int, Timer* timer = nullptr);
+	void execute_interations(int);
 
 	void load_state(std::string);
 

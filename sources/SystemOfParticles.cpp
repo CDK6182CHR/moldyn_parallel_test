@@ -70,7 +70,7 @@ void SystemOfParticles::set_initial_state(double mass, double mean, double dispe
 
 }
 
-void SystemOfParticles::execute_interations(int number_of_interations, Timer* timer) {
+void SystemOfParticles::execute_interations(int number_of_interations) {
 
 	int factor_percent = number_of_interations / 100;
 	int factor_ecran = factor_percent;
@@ -85,9 +85,7 @@ void SystemOfParticles::execute_interations(int number_of_interations, Timer* ti
 	double time;
 	double gas_constant = 0.0;
 
-	if (timer == nullptr) {
-		timer = new Timer();
-	}
+	std::unique_ptr<Timer> timer(new Timer);
 
 	timer->start_timer();
 	for (unsigned int it = 1; it < number_of_interations + 1; it += 1) {
