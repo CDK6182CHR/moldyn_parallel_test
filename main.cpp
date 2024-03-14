@@ -12,6 +12,7 @@ int main() {
 #ifdef _OPENMP
     std::cout << "Info: OpenMP is enabled with " << omp_get_max_threads() << " threads" << std::endl;
 #endif
+    std::cout << "__cplusplus: " << __cplusplus << std::endl;
     int number_of_particles = 216;
     double temperature = 80.0;
     double density = 3.5e4;

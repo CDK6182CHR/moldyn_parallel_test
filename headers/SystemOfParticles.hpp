@@ -1,6 +1,7 @@
 #ifndef SYSTEMOFPARTICLES_H
 #define SYSTEMOFPARTICLES_H
 
+#include <sycl/sycl.hpp>
 #include <memory>
 #include "Force.hpp"
 
@@ -13,6 +14,8 @@ class SystemOfParticles
 private:
 	int number_of_particles;
 	std::unique_ptr<double[]>  r, v, F, m;  // position, velocity, force, mass
+	// sycl::buffer<double, 2> br, bv, bF;
+	// sycl::buffer<double, 1> bm; 
 	double T;               // Temperature
 	double density;
 	double volume;
@@ -21,6 +24,9 @@ private:
 	double K_energy, P_energy, energy;
 	std::unique_ptr<Force> f;
 	std::unique_ptr<std::string[]> particle_name;
+
+	// SYCL
+	sycl::queue Q;
 
 
 	double lateral_size;
@@ -52,7 +58,10 @@ private:
 		std::string delimiter = "\t");
 public:
 
+#if 0
+// for convenience, disable this in SYCL ver.
 	SystemOfParticles();
+#endif
 
 	SystemOfParticles(int, double temperature = 300.0, double dens = 40.0, double time_step = 1.0e-4);
 

@@ -16,7 +16,7 @@ Force::Force(double sigma, double epsilon, double mass)
     p_unit_heat_capacity = pow(p_unit_energy,2)/pow(p_unit_temperature,2); 
 }
 
-
+#if 0
 vec3_t Force::operator () (double *r, double *ro)const {
     vec3_t force{};
 
@@ -36,6 +36,7 @@ vec3_t Force::operator () (double *r, double *ro)const {
     return force;
     
 }
+#endif
 
 double Force::potential(double *r, double *ro) {
 

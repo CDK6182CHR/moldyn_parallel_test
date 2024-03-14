@@ -8,29 +8,38 @@
 #include "Force.hpp"
 #include "SystemOfParticles.hpp"
 #include "fileHandler.hpp"
+#include "sycl_helpers.hpp"
 
 
-
+#if 0
 SystemOfParticles::SystemOfParticles() :
 	r(nullptr),
 	v(nullptr),
+	F(nullptr),
 	m(nullptr),
 	number_of_particles(0),
 	f(nullptr),
 	particle_name(nullptr),
+	Q(sycl::cpu_selector_v),
 	dt(0.0),
 	lateral_size(0.0),
 	lattice_parameter(0.0)
 {}
+#endif
 
-SystemOfParticles::SystemOfParticles(int N, double temperature, double dens, double time_step) {
-
+SystemOfParticles::SystemOfParticles(int N, double temperature, double dens, double time_step):
+	r(new double[3*N]), v(new double[3*N]), F(new double [3*N]), m(new double[N])
+	// ,br(r.get(), sycl::range<2>(N, 3)), bv(v.get(), sycl::range<2>(N, 3))
+	// ,bF(F.get(), sycl::range<2>(N, 3)), bm(m.get(), sycl::range<1>(N))
+	, Q(sycl::cpu_selector_v)
+ {
+	std::cout << "\tSYCL device: " << Q.get_device().get_info<sycl::info::device::name>() << std::endl;
 	number_of_particles = N;
 
-	r.reset(new double[3 * N]);	            //Position
-	v.reset(new double[3 * N]);	            //Velocity
-	F.reset(new double[3 * N]);	            //Force
-	m.reset(new double[N]);	                //Mass
+	// r.reset(new double[3 * N]);	            //Position
+	// v.reset(new double[3 * N]);	            //Velocity
+	// F.reset(new double[3 * N]);	            //Force
+	// m.reset(new double[N]);	                //Mass
 	particle_name.reset(new std::string[N]);
 	f.reset(new Force());		            //Force of interaction
 
@@ -154,6 +163,7 @@ void SystemOfParticles::compute_interations() {
 	// the force array is not set to zero in order to compute
 	// the velocity at the last step of the Velocity-Verlet
 	// algorithm
+#if 0
 #ifdef _OPENMP
 #pragma omp for schedule(dynamic)
 #endif
@@ -179,6 +189,33 @@ void SystemOfParticles::compute_interations() {
 
 		}
 	}
+#else
+
+	sycl::buffer<double[3]> bF(mdutil::as_3d(F), sycl::range<1>(number_of_particles));
+	sycl::buffer<double[3]> br(mdutil::as_3d(r), sycl::range<1>(number_of_particles));
+	try {
+		Q.submit([&, this](sycl::handler& h) {
+			sycl::accessor aF(bF, h, sycl::read_write);
+			sycl::accessor ar(br, h, sycl::read_only);
+			h.parallel_for<class ComputeForces>(sycl::range<1>(number_of_particles), [=, this](sycl::id<1> i) {
+				for (int j = 0; j < number_of_particles; j++) {
+					if (j == i) 
+						continue;
+					double force_loc[3];
+					f->operator()(ar[i], ar[j], force_loc);
+					for (int k = 0; k < 3; k++) {
+						aF[i][k] += force_loc[k];
+					}
+				}
+				});
+			});
+		Q.wait();
+	}
+	catch (std::exception& e) {
+		std::cout << "SYCL error: " << e.what() << std::endl;
+		std::exit(1);
+	}
+#endif
 }
 
 void SystemOfParticles::move_particles() {

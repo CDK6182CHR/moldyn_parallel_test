@@ -33,7 +33,24 @@ class Force
     public:
         Force(double sigma = sigma_Ar, double epsilon = epsilon_Ar, double mass = mass_Ar);
 
-        vec3_t operator () (double *r, double *ro)const;
+        // Use inline for SYCL
+        inline void operator () (const double *r, const double *ro, double* force)const {
+
+            double Rx = r[0] - ro[0];
+            double Ry = r[1] - ro[1];
+            double Rz = r[2] - ro[2];
+            
+            double Rm2 = 1.0/(Rx*Rx + Ry*Ry + Rz*Rz);
+            double Rm6 = Rm2*Rm2*Rm2;
+            
+            double C = 48.0*pow(Rm2,4)*(Rm6 - 0.5);
+
+            force[0] = C*Rx;///unitForce;
+            force[1] = C*Ry;///unitForce;
+            force[2] = C*Rz;///unitForce;
+            
+    
+        }
                 
         double potential(double *r, double *ro);
         
