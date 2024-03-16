@@ -36,7 +36,7 @@ vec3_t Force::operator () (double *r, double *ro)const {
     return force;
     
 }
-#endif
+
 
 double Force::potential(double *r, double *ro) {
 
@@ -50,6 +50,7 @@ double Force::potential(double *r, double *ro) {
     return 4.0*Rm6*(Rm6 - 1.0);
     
 }
+#endif
 
 double Force::unit_of_time() {
     return p_unit_time;

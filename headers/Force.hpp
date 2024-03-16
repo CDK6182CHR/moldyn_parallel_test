@@ -52,7 +52,18 @@ class Force
     
         }
                 
-        double potential(double *r, double *ro);
+        inline double potential(const double *r, const double *ro)const
+        {
+
+            double Rx = r[0] - ro[0];
+            double Ry = r[1] - ro[1];
+            double Rz = r[2] - ro[2];
+
+            double Rm2 = 1.0 / (Rx * Rx + Ry * Ry + Rz * Rz);
+            double Rm6 = Rm2 * Rm2 * Rm2;
+
+            return 4.0 * Rm6 * (Rm6 - 1.0);
+        }
         
         double unit_of_time();
         double unit_of_energy();

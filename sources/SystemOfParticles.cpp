@@ -28,9 +28,9 @@ SystemOfParticles::SystemOfParticles() :
 #endif
 
 SystemOfParticles::SystemOfParticles(int N, double temperature, double dens, double time_step):
-	r(new double[3*N]), v(new double[3*N]), F(new double [3*N]), m(new double[N])
-	// ,br(r.get(), sycl::range<2>(N, 3)), bv(v.get(), sycl::range<2>(N, 3))
-	// ,bF(F.get(), sycl::range<2>(N, 3)), bm(m.get(), sycl::range<1>(N))
+	hr(new double[3*N]), hv(new double[3*N]), hF(new double [3*N]), hm(new double[N])
+	 ,br(mdutil::as_3d(hr), sycl::range<1>(N)), bv(mdutil::as_3d(hv), sycl::range<1>(N))
+	 ,bF(mdutil::as_3d(hF), sycl::range<1>(N)), bm(hm.get(), sycl::range<1>(N))
 	, Q(sycl::cpu_selector_v)
  {
 	std::cout << "\tSYCL device: " << Q.get_device().get_info<sycl::info::device::name>() << std::endl;
@@ -65,9 +65,10 @@ void SystemOfParticles::set_initial_state(double mass, double mean, double dispe
 	set_velocities(mean, dispertion);
 
 	compute_interations(); // In order to aquire units;
-	for (unsigned int i = 0; i < 3 * number_of_particles; i += 1) {
-		F[i] = 0.0;
-	}
+	reset_force();
+	//for (unsigned int i = 0; i < 3 * number_of_particles; i += 1) {
+	//	F[i] = 0.0;
+	//}
 
 
 	std::cout << "\n\tSystem of units used (in S.I. units):\n";
@@ -76,7 +77,18 @@ void SystemOfParticles::set_initial_state(double mass, double mean, double dispe
 	std::cout << "\tUnit of time: " << f->unit_of_time() << std::endl;
 	std::cout << "\tUnit of temperature: " << f->unit_of_temperature() << std::endl;
 
+	//Q.wait_and_throw();
+	std::cout << "done: set_initial_state" << std::endl;
+}
 
+void SystemOfParticles::reset_force()
+{
+	Q.submit([&, this](sycl::handler& h) {
+		auto acc_F = bF.get_access(h, sycl::write_only);
+		h.parallel_for(sycl::range(number_of_particles), [=](sycl::id<1> i) {
+			std::fill_n(acc_F[i], 3, 0.0);
+			});
+		});
 }
 
 void SystemOfParticles::execute_interations(int number_of_interations) {
@@ -91,7 +103,6 @@ void SystemOfParticles::execute_interations(int number_of_interations) {
 	double average_energy = 0.0;
 	double square_energy = 0.0;
 	double heat_capacity = 0.0;
-	double time;
 	double gas_constant = 0.0;
 
 	std::unique_ptr<Timer> timer(new Timer);
@@ -101,16 +112,14 @@ void SystemOfParticles::execute_interations(int number_of_interations) {
 
 		double P_loc = 0, K_loc = 0, U_loc = 0;
 
-#ifdef _OPENMP
+#ifdef MANUAL_PARALLEL
 #pragma omp parallel reduction(+:P_loc) reduction(+:K_loc) reduction(+:U_loc)
 #endif
 		{
-#ifdef _OPENMP
+#ifdef MANUAL_PARALLEL
 #pragma omp for
 #endif
-			for (int i = 0; i < 3 * number_of_particles; i += 1) {
-				F[i] = 0.0;
-			}
+			reset_force();
 
 			//================================================
 			//      THE VELOCITY-VERLET BLOCK
@@ -136,15 +145,18 @@ void SystemOfParticles::execute_interations(int number_of_interations) {
 		T = K_energy * 2 / (3 * (number_of_particles - 1));
 		energy = K_energy + P_energy;
 
+		//std::cout << "kinetic: " << K_energy << std::endl;
+
 		average_pressure += pressure;
 		average_temperature += T;
 		average_energy += energy;
 		square_energy += energy * energy;
-		time = it * dt;
 		heat_capacity = (square_energy / it - pow(average_energy / it, 2)) / (T * T);        // From canonical ensemble
 
 		gas_constant = average_pressure * volume / (number_of_particles * average_temperature);
 		gas_constant *= f->unit_of_gas_constant();
+		
+		Q.wait_and_throw();
 
 		store_files(it, factor_store_state, factor_xy, average_pressure, heat_capacity);
 
@@ -154,7 +166,7 @@ void SystemOfParticles::execute_interations(int number_of_interations) {
 
 	}
 	timer->end_timer();
-
+	//Q.wait_and_throw();
 }
 
 void SystemOfParticles::compute_interations() {
@@ -191,9 +203,9 @@ void SystemOfParticles::compute_interations() {
 	}
 #else
 
-	sycl::buffer<double[3]> bF(mdutil::as_3d(F), sycl::range<1>(number_of_particles));
-	sycl::buffer<double[3]> br(mdutil::as_3d(r), sycl::range<1>(number_of_particles));
-	try {
+	//sycl::buffer<double[3]> bF(mdutil::as_3d(F), sycl::range<1>(number_of_particles));
+	//sycl::buffer<double[3]> br(mdutil::as_3d(r), sycl::range<1>(number_of_particles));
+	//try {
 		Q.submit([&, this](sycl::handler& h) {
 			sycl::accessor aF(bF, h, sycl::read_write);
 			sycl::accessor ar(br, h, sycl::read_only);
@@ -209,17 +221,18 @@ void SystemOfParticles::compute_interations() {
 				}
 				});
 			});
-		Q.wait();
-	}
-	catch (std::exception& e) {
-		std::cout << "SYCL error: " << e.what() << std::endl;
-		std::exit(1);
-	}
+		//Q.wait_and_throw();
+		//std::cout << "done: compute_interaction" << std::endl;
+	//}
+	//catch (std::exception& e) {
+	//	std::cout << "SYCL error: " << e.what() << std::endl;
+	//	std::exit(1);
+	//}
 #endif
 }
 
 void SystemOfParticles::move_particles() {
-
+#if 0
 #ifdef _OPENMP
 #pragma omp for
 #endif
@@ -230,10 +243,25 @@ void SystemOfParticles::move_particles() {
 
 		}
 	}
+#else
+	Q.submit([&, this](sycl::handler& h) {
+		auto ar = br.get_access(h, sycl::read_write);
+		auto av = bv.get_access(h, sycl::read_only);
+		auto aF = bF.get_access(h, sycl::read_only);
+		auto am = bm.get_access(h, sycl::read_only);
+		h.parallel_for<class MoveParticles>(sycl::range(number_of_particles), [=, this](sycl::id<1> i) {
+			for (int k = 0; k < 3; k++) {
+				ar[i][k] += av[i][k] * dt + 0.5 * (aF[i][k] / am[i]) * dt * dt;
+			}
+			});
+		});
+	//Q.wait_and_throw();
+	//std::cout << "done: move_particles" << std::endl;
+#endif
 }
 
 void SystemOfParticles::compute_velocities() {
-
+#if 0
 #ifdef _OPENMP
 #pragma omp for
 #endif
@@ -244,12 +272,26 @@ void SystemOfParticles::compute_velocities() {
 
 		}
 	}
+#else 
+	Q.submit([&, this](sycl::handler& h) {
+		auto av = bv.get_access(h, sycl::read_write);
+		auto aF = bF.get_access(h, sycl::read_only);
+		auto am = bm.get_access(h, sycl::read_only);
+		h.parallel_for(sycl::range(number_of_particles), [=, this](sycl::id<1> i) {
+			for (int k = 0; k < 3; k++)
+				av[i][k] += 0.5 * (aF[i][k] / am[i]) * dt;
+			});
+		});
+	//Q.wait_and_throw();
+	//std::cout << "done: compute_vel" << std::endl;
+#endif
 }
 
 double SystemOfParticles::check_wall_collisions() {
 	// Elastic walls
 	double P = 0.0;
 
+#if 0
 #ifdef _OPENMP
 #pragma omp for 
 #endif
@@ -265,6 +307,32 @@ double SystemOfParticles::check_wall_collisions() {
 			}
 		}
 	}
+#else
+	// SYCL reduction 
+	// spec: https://registry.khronos.org/SYCL/specs/sycl-2020/html/sycl-2020.html#sec:reduction
+	// see also: https://github.com/Michoumichmich/MolecularDynamics
+	{
+		sycl::buffer<double> bP{ &P, sycl::range(1) };
+		Q.submit([&, this](sycl::handler& h) {
+			auto acc_v = bv.get_access(h, sycl::read_write);
+			auto acc_r = br.get_access(h, sycl::read_only);
+			auto acc_m = bm.get_access(h, sycl::read_only);
+			auto red_P = sycl::reduction(bP, h, sycl::plus<>());
+			h.parallel_for(sycl::range(number_of_particles), red_P, [=, this](sycl::id<1> i, auto& p_sum) {
+				for (int k = 0; k < 3; k++) {
+					if (acc_r[i][k] < 0.0) {
+						acc_v[i][k] *= -1.; //- elastic walls
+						p_sum += 2.0 * acc_m[i] * std::abs(acc_v[i][k]) / dt;        // the average forçe from the walls
+					}
+					if (acc_r[i][k] >= lateral_size) {
+						acc_v[i][k] *= -1.;  //- elastic walls
+						p_sum += 2.0 * acc_m[i] * std::abs(acc_v[i][k]) / dt;        // the average forçe from the walls
+					}
+				}
+				});
+			});
+	}   // end of reduction region, the destruction of bP should write data into P
+#endif
 
 	return P / (6.0 * lateral_size * lateral_size);            // the average forçe form the walls over area
 
@@ -273,6 +341,7 @@ double SystemOfParticles::check_wall_collisions() {
 double SystemOfParticles::knetic_energy() {
 	double v2 = 0.0;
 
+#if 0
 #ifdef _OPENMP
 #pragma omp for
 #endif
@@ -282,6 +351,21 @@ double SystemOfParticles::knetic_energy() {
 		}
 	}
 	//T = v2/(3*(number_of_particles - 1));   // 2024.03.09  for parallel version: put outside
+#else 
+	{
+		sycl::buffer<double> buf_v2{ &v2, 1 };
+		Q.submit([&, this](sycl::handler& h) {
+			auto acc_m = bm.get_access(h, sycl::read_only);
+			auto acc_v = bv.get_access(h, sycl::read_only);
+			auto red_v2 = sycl::reduction(buf_v2, h, sycl::plus<>());
+			h.parallel_for(sycl::range(number_of_particles), red_v2, [=](sycl::id<1> i, auto& v2_sum) {
+				for (int k = 0; k < 3; k++) {
+					v2_sum += acc_m[i] * acc_v[i][k] * acc_v[i][k];
+				}
+				});
+			});
+	}   // end of reduction
+#endif
 	return 0.5 * v2;
 
 }
@@ -293,6 +377,7 @@ double SystemOfParticles::Temperature() {
 
 double SystemOfParticles::potential_energy() {
 	double U = 0.0;
+#if 0
 #ifdef _OPENMP
 #pragma omp for schedule(dynamic)
 #endif
@@ -301,6 +386,21 @@ double SystemOfParticles::potential_energy() {
 			U += f->potential(&r[i], &r[j]);
 		}
 	}
+#else 
+	// SYCL reduction
+	{
+		sycl::buffer<double> buf_U(&U, 1);
+		Q.submit([&, this](sycl::handler& h) {
+			auto acc_r = br.get_access(h, sycl::read_only);
+			auto red_U = sycl::reduction(buf_U, h, sycl::plus<>());
+			h.parallel_for(sycl::range(number_of_particles), red_U, [=, this](sycl::id<1> i, auto& sum_U) {
+				for (int j = i + 1; j < number_of_particles; j++) {
+					sum_U += f->potential(acc_r[i], acc_r[j]);
+				}
+				});
+			});
+	}
+#endif
 	return U;
 }
 
@@ -311,8 +411,11 @@ void SystemOfParticles::set_positions() {
 	n = int(ceil(pow(number_of_particles, 1.0 / 3.0))); // Number of molecules per direction
 	lattice_parameter = lateral_size / n;        // Distance between molecules
 
+	
+#if 0
 	int idx = 0;
 	int TN = 3 * number_of_particles;
+
 	for (unsigned int i = 0; i < n; i++) {
 		for (unsigned int j = 0; j < n; j++) {
 			for (unsigned int k = 0; k < n; k++) {
@@ -325,59 +428,100 @@ void SystemOfParticles::set_positions() {
 			}
 		}
 	}
-
+#else
+	// For simplicity, just use single_task ...
+	Q.submit([&, this](sycl::handler& h) {
+		auto acc_r = br.get_access(h, sycl::write_only);
+		h.single_task([=, this]() {
+			int idx = 0;
+			for (int i = 0; i < n; i++) {
+				for (int j = 0; j < n; j++) {
+					for (int k = 0; k < n; k++) {
+						if (idx < number_of_particles) {
+							acc_r[idx][0] = (i + 0.5) * lattice_parameter;
+							acc_r[idx][1] = (j + 0.5) * lattice_parameter;
+							acc_r[idx][2] = (k + 0.5) * lattice_parameter;
+						}
+						idx++;
+					}
+				}
+			}
+			});
+		});
+#endif
+	//Q.wait_and_throw();
+	//std::cout << "done: set_pos" << std::endl;
 }
 
 void SystemOfParticles::set_velocities(double mean, double dispertion) {
 
-	double Vcm[3] = { 0.,0.,0. };
-	double M = 0.0;
-	double v2 = 0.0;
-	// construct a trivial random generator engine from a time-based seed:
-	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-	std::default_random_engine generator(seed);
+	auto seed = std::chrono::system_clock::now().time_since_epoch().count();
+	Q.submit([&, this](sycl::handler& h) {
+		auto acc_v = bv.get_access(h, sycl::read_write);
+		auto acc_m = bm.get_access(h, sycl::read_only);
+		h.single_task([=, this]() {
+			double Vcm[3] = { 0.,0.,0. };
+			double M = 0.0;
+			double v2 = 0.0;
+			// construct a trivial random generator engine from a time-based seed:
+			
+			std::default_random_engine generator(seed);
+			std::normal_distribution<double> distribution(mean, dispertion);
 
-	std::normal_distribution<double> distribution(mean, dispertion);
+			for (int i = 0; i < number_of_particles; i++) {
+				for (int k = 0; k < 3; k++)
+					acc_v[i][k] = distribution(generator);
+			}
+			for (int i = 0; i < number_of_particles; i++) {
+				for (int j = 0; j < 3; j += 1) {
+					Vcm[j] += acc_m[i] * acc_v[i][j];
+				}
+			}
 
-	for (unsigned int i = 0; i < 3 * number_of_particles; i += 1) {
-		v[i] = distribution(generator);
-	}
-	for (unsigned int i = 0; i < 3 * number_of_particles; i += 3) {
-		for (unsigned int j = 0; j < 3; j += 1) {
-			Vcm[j] += m[i / 3] * v[i + j];
-		}
-	}
+			for (unsigned int i = 0; i < number_of_particles; i += 1) {
+				M += acc_m[i];
+			}
 
-	for (unsigned int i = 0; i < number_of_particles; i += 1) {
-		M += m[i];
-	}
+			for (unsigned int j = 0; j < 3; j += 1) {
+				Vcm[j] /= number_of_particles * M;
+			}
 
-	for (unsigned int j = 0; j < 3; j += 1) {
-		Vcm[j] /= number_of_particles * M;
-	}
+			for (unsigned int i = 0; i < number_of_particles; i++) {
+				for (unsigned int j = 0; j < 3; j += 1) {
+					acc_v[i][j] -= Vcm[j];
+					v2 += acc_m[i] * acc_v[i][j] * acc_v[i][j];
+				}
+			}
 
-	for (unsigned int i = 0; i < 3 * number_of_particles; i += 3) {
-		for (unsigned int j = 0; j < 3; j += 1) {
-			v[i + j] -= Vcm[j];
-			v2 += m[i / 3] * v[i + j] * v[i + j];
-		}
-	}
+			double To = v2 / (3 * (number_of_particles - 1));
+			double temperature_factor = sqrt(T / To);
 
-	double To = v2 / (3 * (number_of_particles - 1));
-	double temperature_factor = sqrt(T / To);
-
-	for (unsigned int i = 0; i < 3 * number_of_particles; i += 3) {
-		for (unsigned int j = 0; j < 3; j += 1) {
-			v[i + j] *= temperature_factor;
-		}
-	}
-
+			for (int i = 0; i < number_of_particles; i++) {
+				for (int j = 0; j < 3; j += 1) {
+					acc_v[i][j] *= temperature_factor;
+				}
+			}
+			});
+		});
+	//Q.wait_and_throw();
+	//std::cout << "done: set_vel" << std::endl;
 }
 
 void SystemOfParticles::set_equal_masses(double mass) {
+#if 0
 	for (unsigned int i = 0; i < number_of_particles; i += 1) {
 		m[i] = mass;
 	}
+#else 
+	Q.submit([&](sycl::handler& h) {
+		auto acc_m = bm.get_access(h, sycl::write_only);
+		h.parallel_for(sycl::range(number_of_particles), [=](sycl::id<1> i) {
+			acc_m[i] = mass;
+			});
+		});
+	//Q.wait_and_throw();
+	std::cout << "done: set_equal_mass" << std::endl;
+#endif
 }
 
 void SystemOfParticles::set_particles_name(std::string name) {
@@ -386,6 +530,7 @@ void SystemOfParticles::set_particles_name(std::string name) {
 	}
 }
 
+#if 0
 void SystemOfParticles::load_state(std::string file_name) {
 	std::ifstream file;
 	file.open(file_name);
@@ -407,6 +552,7 @@ void SystemOfParticles::load_state(std::string file_name) {
 
 	file.close();
 }
+
 
 void SystemOfParticles::store_state(std::string file_name) {
 	std::ofstream file;
@@ -431,6 +577,7 @@ void SystemOfParticles::store_state(std::string file_name) {
 	}
 	file.close();
 }
+#endif
 
 void SystemOfParticles::store_xyz_file(bool append, std::string file_name, std::string delimiter) {
 	std::ofstream file;
@@ -441,10 +588,11 @@ void SystemOfParticles::store_xyz_file(bool append, std::string file_name, std::
 		file.open(file_name);
 		file << number_of_particles << std::endl;
 	}
-	for (unsigned int idx = 0; idx < 3 * number_of_particles; idx += 3) {
-		int i = idx / 3;
-		file << particle_name[i];
-		file << delimiter << r[idx] << delimiter << r[idx + 1] << delimiter << r[idx + 2] << std::endl;
+	auto acc_r = br.get_host_access(sycl::read_only);
+
+	for (int idx = 0; idx < number_of_particles; idx++) {
+		file << particle_name[idx];
+		file << delimiter << acc_r[idx][0] << delimiter << acc_r[idx][1] << delimiter << acc_r[idx][2] << std::endl;
 	}
 	file.close();
 }

@@ -13,9 +13,9 @@ class SystemOfParticles
 
 private:
 	int number_of_particles;
-	std::unique_ptr<double[]>  r, v, F, m;  // position, velocity, force, mass
-	// sycl::buffer<double, 2> br, bv, bF;
-	// sycl::buffer<double, 1> bm; 
+	std::unique_ptr<double[]>  hr, hv, hF, hm;  // position, velocity, force, mass. 2024.03.16: use h for host
+	sycl::buffer<double[3], 1> br, bv, bF;
+	sycl::buffer<double, 1> bm;
 	double T;               // Temperature
 	double density;
 	double volume;
@@ -67,14 +67,18 @@ public:
 
 	void set_initial_state(double mass = 1.0, double mean = 0.0, double dispertion = 1.0);
 
+	void reset_force();
+
 	void set_particles_name(std::string name = "Ar");
 
 	void execute_interations(int);
 
+#if 0
+	// for convenience, disable these unused APIs for sycl
 	void load_state(std::string);
 
 	void store_state(std::string);
-
+#endif
 };
 
 #endif

@@ -19,16 +19,22 @@ int main() {
     
     set_inputs(&number_of_particles, &temperature, &density);
     
-    SystemOfParticles gas(number_of_particles, temperature, density);
-    gas.set_initial_state();
+    try {
+        SystemOfParticles gas(number_of_particles, temperature, density);
+        gas.set_initial_state();
 
-    Timer timer;
-    
-    timer.start_timer();
-    
-    	gas.execute_interations(20000);
-    	
-    timer.end_timer("Simulation lasted ");
+        Timer timer;
+
+        timer.start_timer();
+
+        gas.execute_interations(20000);
+
+        timer.end_timer("Simulation lasted ");
+    }
+    catch (std::exception& e) {
+        std::cout << "ERROR: " << e.what() << std::endl;
+        std::exit(1);
+    }
     
     return 0;
 }
